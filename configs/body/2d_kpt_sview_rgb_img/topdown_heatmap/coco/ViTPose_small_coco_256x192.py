@@ -4,6 +4,8 @@ _base_ = [
 ]
 evaluation = dict(interval=10, metric='mAP', save_best='AP')
 
+data_root = '/home/nvadmin/users/dobby/datasets'
+
 optimizer = dict(type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1,
                  constructor='LayerDecayOptimizerConstructor', 
                  paramwise_cfg=dict(
@@ -85,9 +87,9 @@ data_cfg = dict(
     nms_thr=1.0,
     oks_thr=0.9,
     vis_thr=0.2,
-    use_gt_bbox=False,
+    use_gt_bbox=True,
     det_bbox_thr=0.0,
-    bbox_file='data/coco/person_detection_results/'
+    bbox_file=f'{data_root}/'
     'COCO_val2017_detections_AP_H_56_person.json',
 )
 
@@ -139,9 +141,8 @@ val_pipeline = [
 
 test_pipeline = val_pipeline
 
-data_root = 'data/coco'
 data = dict(
-    samples_per_gpu=64,
+    samples_per_gpu=128,
     workers_per_gpu=4,
     val_dataloader=dict(samples_per_gpu=32),
     test_dataloader=dict(samples_per_gpu=32),

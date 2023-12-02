@@ -144,12 +144,16 @@ def train_model(model,
     # build runner
     optimizer = build_optimizers(model, cfg.optimizer)
 
+    from mmcv.runner.hooks.logger.tensorboard import TensorboardLoggerHook
+    
     runner = EpochBasedRunner(
         model,
         optimizer=optimizer,
         work_dir=cfg.work_dir,
         logger=logger,
         meta=meta)
+    
+    runner.register_hook(TensorboardLoggerHook(cfg.work_dir))
     # an ugly workaround to make .log and .log.json filenames the same
     runner.timestamp = timestamp
 
