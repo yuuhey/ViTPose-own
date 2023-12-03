@@ -2,7 +2,7 @@ _base_ = [
     '../../../../_base_/default_runtime.py',
     '../../../../_base_/datasets/coco.py'
 ]
-evaluation = dict(interval=10, metric='mAP', save_best='AP')
+evaluation = dict(interval=1, metric='mAP', save_best='AP')
 
 data_root = '/home/nvadmin/users/dobby/datasets'
 

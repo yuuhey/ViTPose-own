@@ -66,6 +66,7 @@ def parse_args():
         default='none',
         help='job launcher')
     parser.add_argument('--local-rank', type=int, default=0)
+    parser.add_argument('--suffix', type=str, default='0')
     parser.add_argument(
         '--autoscale-lr',
         action='store_true',
@@ -99,7 +100,7 @@ def main():
     elif cfg.get('work_dir', None) is None:
         # use config filename as default work_dir if cfg.work_dir is None
         cfg.work_dir = osp.join('./work_dirs',
-                                osp.splitext(osp.basename(args.config))[0])
+                                osp.splitext(osp.basename(args.config))[0] + '-' + args.suffix)
     if args.resume_from is not None:
         cfg.resume_from = args.resume_from
     if args.gpus is not None:

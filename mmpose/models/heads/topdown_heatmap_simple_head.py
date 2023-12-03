@@ -11,6 +11,7 @@ from mmpose.models.utils.ops import resize
 from ..builder import HEADS
 import torch.nn.functional as F
 from .topdown_heatmap_base_head import TopdownHeatmapBaseHead
+import random
 
 
 @HEADS.register_module()
@@ -160,6 +161,13 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         """
 
         losses = dict()
+        
+        if 0.3 >= random.random():
+            delta = 0.1
+            for bi in range(target.size(0)):
+                for ki in range(target.size(1)):
+                    # target[bi][ki] = (1 - delta) * target[bi][ki]
+                    target[bi][ki] += delta * (target[bi].sum(dim=0) - target[bi][ki])
 
         assert not isinstance(self.loss, nn.Sequential)
         assert target.dim() == 4 and target_weight.dim() == 3
