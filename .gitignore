@@ -163,3 +163,5 @@ imgs/
 
 # added by jeong 
 data/
+.nfs*
+*/nfs*
