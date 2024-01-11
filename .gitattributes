@@ -1,0 +1,1 @@
+C:/Users/qtly_u/local/ViTPose-own/best_pt/base_coco/best_AP_epoch_209.pth filter=lfs diff=lfs merge=lfs -text
