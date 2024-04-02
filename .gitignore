@@ -166,3 +166,4 @@ data/
 .nfs*
 */nfs*
 *.pth
+mmpose/
