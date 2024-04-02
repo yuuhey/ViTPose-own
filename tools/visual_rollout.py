@@ -1,3 +1,4 @@
+# test.py copy
 # Copyright (c) OpenMMLab. All rights reserved.
 import argparse
 import os
@@ -23,6 +24,13 @@ except ImportError:
                   'Please install mmcv>=1.1.4')
     from mmpose.core import wrap_fp16_model
 
+
+"""
+# usage
+time python tools/visual_rollout.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py\
+     /Data/PoseEstimation/ViTPose/PreTrained/<trained_model.pth>
+"""
+# inference > attention rollout > 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='mmpose test model')

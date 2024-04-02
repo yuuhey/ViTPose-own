@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "train",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/dist_train.sh",
+            "args": [
+                "configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py",
+                "2",
+                "--cfg-options",
+                "model.pretrained=mae_pretrained/mae_small_pretrain.pth",
+                "--seed",
+                "0",
+                "--suffix",
+                "2"
+            ],
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "name": "Python: Debug Test Script",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/test.py",
+            "args": [
+                "configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py",
+                "work_dirs/ViTPose_base_coco_256x192-3/best_AP_epoch_205.pth"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
