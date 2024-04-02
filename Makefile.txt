@@ -1,1 +1,338 @@
-../Makefiles/Makefile.ViTPose
+all:
+	@echo "ViTPose: Simple Vision Transformer Baselines for Human Pose Estimation"
+	@echo "	Requires PyTorch 1.9.0 and mmcv 1.3.9"
+	@echo "		pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html"
+	@echo "		or pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html"
+	@echo "	For MS COCO - use d for distributed"
+	@echo "		[d]ccs|b|l|h:	With Classic Decoder using S|B|L|H Model"
+	@echo "		[d]css|b|l|h:	With Simple Decoder using S|B|L|H Model"
+	@echo "		[d]c3b|l|h:	With COCO+AIC+MPII using B|L|H Model"
+	@echo "		[d]c4b|l|h:	With COCO+AIC+MPII+CrowdPose using B|L|H Model"
+	@echo "		[d]c6s|b|l|h:	With COCO+AIC+MPII+AP10K+APT36K+WholeBody using S|B|L|H Model"
+	@echo "	For MPII"
+	@echo "		m3b|l|h:	With COCO+AIC+MPII using B|L|H Model"
+	@echo "		m4b|l|h:	With COCO+AIC+MPII+CrowdPose using B|L|H Model"
+	@echo "		m6s|b|l|h:	With COCO+AIC+MPII+AP10K+APT36K+WholeBody using S|B|L|H Model"
+
+
+PRETRAINED = /Data/PoseEstimation/ViTPose/PreTrained
+GPUS=2
+
+# Training for Single Machine
+dtr:
+	bash tools/dist_train.sh <Config PATH> <NUM GPUs> --cfg-options model.pretrained=<Pretrained PATH> --seed 0
+
+# Training for Multiple Machines
+trm:
+	time python -m torch.distributed.launch --nnodes <Num Machines> --node_rank <Rank of Machine> --nproc_per_node <GPUs Per Machine> --master_addr <Master Addr> --master_port <Master Port> tools/train.py <Config PATH> --cfg-options model.pretrained=<Pretrained PATH> --launcher pytorch --seed 0
+
+
+# for COCO validation
+
+# With simple decoder
+#	ViTPose-S
+css:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_small_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose_small.pth
+
+css4:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_small_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose_small_up4.pth
+
+#	ViTPose-B
+csb:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose-b-simple.pth
+
+#	ViTPose-L
+csl:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose-l-simple.pth
+
+#	ViTPose-H
+csh:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose-h-simple.pth
+
+# With classic decoder
+#	ViTPose-S
+ccs:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_small_coco_256x192.py \
+		${PRETRAINED}/vitpose_small.pth
+
+#	ViTPose-B
+ccb:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py \
+		${PRETRAINED}/vitpose-b.pth
+
+#	ViTPose-L
+ccl:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_coco_256x192.py \
+		${PRETRAINED}/vitpose-l.pth
+
+#	ViTPose-H
+cch:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+		${PRETRAINED}/vitpose-h.pth
+
+# Results from this repo on MS COCO val set (multi-task training)
+#	Dataset: COCO+AIC+MPII, Resolution: 256x192
+c3b:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py \
+		${PRETRAINED}/vitpose_base_coco_aic_mpii.pth
+
+c3l:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_coco_256x192.py \
+		${PRETRAINED}/vitpose_large_coco_aic_mpii.pth
+
+c3h:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+		${PRETRAINED}/vitpose_huge_coco_aic_mpii.pth
+
+#	Dataset: COCO+AIC+MPII+CrowdPose, Resolution: 256x192
+c4b:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py \
+		${PRETRAINED}/vitpose-b-multi-coco.pth
+
+c4l:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_coco_256x192.py \
+		${PRETRAINED}/vitpose-l-multi-coco.pth
+
+c4h:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+		${PRETRAINED}/vitpose-h-multi-coco.pth
+
+# for MS COCO (Dataset: COCO+AIC+MPII+AP10K+APT36K+WholeBody)
+c6s:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/vitPose+_small_coco+aic+mpii+ap10k+apt36k+wholebody_256x192_udp.py \
+		${PRETRAINED}/vitpose+_small.pth
+
+c6b:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/vitPose+_base_coco+aic+mpii+ap10k+apt36k+wholebody_256x192_udp.py \
+		${PRETRAINED}/vitpose+_base.pth
+
+c6l:
+	time python tools/test.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/vitPose+_large_coco+aic+mpii+ap10k+apt36k+wholebody_256x192_udp.py \
+		${PRETRAINED}/vitpose+_large.pth
+
+# Distributed Execution
+dcss:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_small_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose_small_up4.pth $(GPUS)
+
+dcsb:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose-b-simple.pth $(GPUS)
+
+dcsl:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose-l-simple.pth $(GPUS)
+
+dcsh:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_simple_coco_256x192.py \
+		${PRETRAINED}/vitpose-h-simple.pth $(GPUS)
+
+dccs:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_small_coco_256x192.py \
+		${PRETRAINED}/vitpose_small.pth $(GPUS)
+
+dccb:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py \
+		${PRETRAINED}/vitpose-b.pth $(GPUS)
+
+dccl:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_coco_256x192.py \
+		${PRETRAINED}/vitpose-l.pth $(GPUS)
+
+dcch:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+		${PRETRAINED}/vitpose-h.pth $(GPUS)
+
+
+# Results from this repo on MS COCO val set (multi-task training)
+#	Dataset: COCO+AIC+MPII+CrowdPose, Resolution: 256x192
+dcmb:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py \
+		${PRETRAINED}/vitpose_base_coco_aic_mpii.pth $(GPUS)
+	#	${PRETRAINED}/vitpose-b-multi-coco.pth $(GPUS)
+
+dcml:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_large_coco_256x192.py \
+		${PRETRAINED}/vitpose-l-multi-coco.pth $(GPUS)
+
+dcmh:
+	bash tools/dist_test.sh configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+		${PRETRAINED}/vitpose-h-multi-coco.pth $(GPUS)
+
+#	Dataset: COCO+AIC+MPII+CrowdPose, Resolution: 576x432
+# dcmg:
+
+
+#
+# for MPII validation
+#
+#
+#	Datset: COCO+AIC+MPII
+#
+#		Model: ViTPose-B
+m3b:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py \
+		${PRETRAINED}/vitpose_base_coco_aic_mpii.pth
+
+#		Model: ViTPose-L
+m3l:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py \
+		${PRETRAINED}/vitpose_large_coco_aic_mpii.pth
+
+#		Model: ViTPose-H
+m3h:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py \
+		${PRETRAINED}/vitpose_huge_coco_aic_mpii.pth
+
+#	Datset: COCO+AIC+MPII+CrowdPose
+#		Model: ViTPose-B
+m4b:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py \
+		${PRETRAINED}/vitpose-b-multi-mpii.pth
+
+#		Model: ViTPose-L
+m4l:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py \
+		${PRETRAINED}/vitpose-l-multi-mpii.pth
+
+#		Model: ViTPose-H
+m4h:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py \
+		${PRETRAINED}/vitpose-h-multi-mpii.pth
+
+#	Datset: COCO+AIC+MPII++AP10K+APT36K+WholeBody
+#		Model: ViTPose-S
+m6s:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_small_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_small.pth
+
+#		Model: ViTPose-B
+m6b:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_base.pth
+
+#		Model: ViTPose-L
+m6l:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_large.pth
+
+#		Model: ViTPose-H
+m6h:
+	time python tools/test.py \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_huge.pth
+
+dm3b:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py \
+		${PRETRAINED}/vitpose_base_coco_aic_mpii.pth $(GPUS)
+
+#		Model: ViTPose-L
+dm3l:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py \
+		${PRETRAINED}/vitpose_large_coco_aic_mpii.pth $(GPUS)
+
+#		Model: ViTPose-H
+dm3h:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py \
+		${PRETRAINED}/vitpose_huge_coco_aic_mpii.pth $(GPUS)
+
+#	DataSet: COCO+AIC+MPII+CrowdPose
+#		Model: ViTPose-B*, 
+dm4b:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py \
+		${PRETRAINED}/vitpose-b-multi-mpii.pth $(GPUS)
+
+#		Model: ViTPose-L*
+dm4l:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py \
+		${PRETRAINED}/vitpose-l-multi-mpii.pth $(GPUS)
+
+#		Model: ViTPose-H*
+dm4h:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py \
+		${PRETRAINED}/vitpose-h-multi-mpii.pth $(GPUS)
+
+#	DataSet: COCO+AIC+MPII+AP10K+APT36K+WholeBody
+#		Model: ViTPose+-S
+dm6s:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_small_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_small.pth $(GPUS)
+
+#		Model: ViTPose+-B
+dm6b:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_base.pth $(GPUS)
+
+#		Model: ViTPose+-L
+dm6l:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_large.pth $(GPUS)
+
+#		Model: ViTPose+-H
+dm6h:
+	bash tools/dist_test.sh \
+		configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py \
+		${PRETRAINED}/vitpose+_huge.pth $(GPUS)
+
+
+# Get Pretrained Models: config and weights
+get_mpii: CAM CAMC CAMAAW
+	cd CAM; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py
+	cd CAM; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py
+	cd CAM; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py
+	cd CAMC; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py
+	cd CAMC; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py
+	cd CAMC; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py
+	cd CAMAAW; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_small_mpii_256x192.py
+	cd CAMAAW; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_base_mpii_256x192.py
+	cd CAMAAW; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_large_mpii_256x192.py
+	cd CAMAAW; wget https://github.com/ViTAE-Transformer/ViTPose/blob/main/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/ViTPose_huge_mpii_256x192.py
+
+# COCO+AIC+MPII
+CAM:
+	mkdir -p CAM
+
+# COCO+AIC+MPII+CrowdPose
+CAMC:
+	mkdir -p CAMC
+
+# COCO+AIC+MPII+AP10K+APT36K+WholeBody
+CAMAAW:
+	mkdir -p CAMAAW
+
+# HyungSik Kim
+ANN=NOD_Sony_Nikon_train_person.json
+MODEL_PATH=/Data/PoseEstimation/ViTPose/PreTrained/
+17kpt:
+	python demo/top_down_img_demo_for_17kpts.py
+
+config:
+	python demo/top_down_img_demo_for_confidence.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/exl/ViTPose_base_exl_256x192_dark.py \
+		$(MODEL_PATH)/vitpose-b-multi-crowdpose.pth \
+		--json-file ../PreProcess/Resize/ann/$(ANN) \
+		--out-img-root vis_result \
+		--thickness 7 
+

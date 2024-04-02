@@ -164,6 +164,5 @@ imgs/
 # added by jeong 
 data/
 .nfs*
-*/nfs*
 *.pth
-mmpose/
+*/nfs*
