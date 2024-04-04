@@ -144,6 +144,61 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             else:
                 self.final_layer = layers[0]
 
+    def get_related_joints(self, num):
+         # 번호에 해당하는 관절 이름
+        joint_names = {
+            0: "nose",
+            1: "left_eye",
+            2: "right_eye",
+            3: "left_ear",
+            4: "right_ear",
+            5: "left_shoulder",
+            6: "right_shoulder",
+            7: "left_elbow",
+            8: "right_elbow",
+            9: "left_wrist",
+            10: "right_wrist",
+            11: "left_hip",
+            12: "right_hip",
+            13: "left_knee",
+            14: "right_knee",
+            15: "left_ankle",
+            16: "right_ankle"
+        }
+
+        # 관련 관절 정보를 담은 딕셔너리
+        related_joints_dict = {
+            "nose": ['left_eye', 'right_eye', 'left_ear', 'right_ear'],
+            "left_eye": ['nose', 'left_ear', 'left_shoulder'],
+            "right_eye": ['nose', 'right_ear', 'right_shoulder'],
+            "left_ear": ['left_eye', 'left_shoulder'],
+            "right_ear": ['right_eye', 'right_shoulder'],
+            "left_shoulder": ['nose', 'left_elbow', 'left_hip', 'left_ear'],
+            "right_shoulder": ['nose', 'right_elbow', 'right_hip', 'right_ear'],
+            "left_elbow": ['left_shoulder', 'left_wrist'],
+            "right_elbow": ['right_shoulder', 'right_wrist'],
+            "left_wrist": ['left_elbow'],
+            "right_wrist": ['right_elbow'],
+            "left_hip": ['left_shoulder', 'left_knee'],
+            "right_hip": ['right_shoulder', 'right_knee'],
+            "left_knee": ['left_hip', 'left_ankle'],
+            "right_knee": ['right_hip', 'right_ankle'],
+            "left_ankle": ['left_knee'],
+            "right_ankle": ['right_knee']
+        }
+
+        # 번호에 해당하는 관절 이름 가져오기
+        joint_name = joint_names.get(num)
+
+        # 관련 관절 이름에 해당하는 관련 관절 리스트 가져오기
+        related_joint_names = related_joints_dict.get(joint_name, [])
+
+        # 관련 관절 이름을 번호로 변환하여 리스트로 만들기
+        related_joints_num = [list(joint_names.keys())[list(joint_names.values()).index(name)] for name in related_joint_names]
+
+        return related_joints_num
+
+
     def get_loss(self, output, target, target_weight):
         """Calculate top-down keypoint loss.
 
@@ -161,17 +216,19 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         """
 
         losses = dict()
-        
-        if 0.3 >= random.random():
-            delta = 0.1
-            for bi in range(target.size(0)):
-                for ki in range(target.size(1)):
-                    # target[bi][ki] = (1 - delta) * target[bi][ki]
-                    target[bi][ki] += delta * (target[bi].sum(dim=0) - target[bi][ki])
 
-        assert not isinstance(self.loss, nn.Sequential)
-        assert target.dim() == 4 and target_weight.dim() == 3
-        losses['heatmap_loss'] = self.loss(output, target, target_weight)
+        delta = 0.01
+        cloned_target = target.clone()  # 원본 데이터 복제
+        for bi in range(cloned_target.size(0)):
+            for ki in range(cloned_target.size(1)):
+                related_joints = self.get_related_joints(ki)
+                summan = 0.0
+                for related_ki in related_joints:
+                    summan += delta * cloned_target[bi][related_ki]
+                    target[bi][ki] += summan        
+            assert not isinstance(self.loss, nn.Sequential)
+            assert cloned_target.dim() == 4 and target_weight.dim() == 3
+            losses['heatmap_loss'] = self.loss(output, target, target_weight)
 
         return losses
 
