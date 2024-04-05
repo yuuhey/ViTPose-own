@@ -162,7 +162,10 @@ imgs/
 #.idea/
 
 # added by jeong 
-data/
+*/data/
 .nfs*
 *.pth
 */nfs*
+best_pt/
+work_dirs/
+visualization.ipynb

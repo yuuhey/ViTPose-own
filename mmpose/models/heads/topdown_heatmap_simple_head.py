@@ -35,7 +35,6 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         input_transform (str|None): Transformation type of input features.
             Options: 'resize_concat', 'multiple_select', None.
             Default: None.
-ge
             - 'resize_concat': Multiple feature maps will be resized to the
                 same size as the first one and then concat together.
                 Usually used in FCN head of HRNet.
@@ -197,27 +196,20 @@ ge
             target_weight (torch.Tensor[N,K,1]):
                 Weights across different joint types.
         """
-        
-        losses = dict()
-        
-        if 0.35 >= random.random():
-            delta = 0.05
-            cloned_target = target.clone()  # 원본 데이터 복제
-            for bi in range(cloned_target.size(0)):
-                for ki in range(cloned_target.size(1)):
-                    related_joints = self.get_related_joints(ki)
-                    summan = 0.0
-                    for related_ki in related_joints:
-                        summan += delta * cloned_target[bi][related_ki]
-                    target[bi][ki] += summan
 
+        losses = dict()
+
+        delta = 0.01
+        cloned_target = target.clone()  # 원본 데이터 복제
+        for bi in range(cloned_target.size(0)):
+            for ki in range(cloned_target.size(1)):
+                related_joints = self.get_related_joints(ki)
+                summan = 0.0
+                for related_ki in related_joints:
+                    summan += delta * cloned_target[bi][related_ki]
+                    target[bi][ki] += summan        
             assert not isinstance(self.loss, nn.Sequential)
             assert cloned_target.dim() == 4 and target_weight.dim() == 3
-            losses['heatmap_loss'] = self.loss(output, target, target_weight)
-
-        else:
-            assert not isinstance(self.loss, nn.Sequential)
-            assert target.dim() == 4 and target_weight.dim() == 3
             losses['heatmap_loss'] = self.loss(output, target, target_weight)
 
         return losses
