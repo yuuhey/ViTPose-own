@@ -162,9 +162,9 @@ class TopDown(BasePose):
 
     def forward_test(self, img, img_metas, return_heatmap=False, **kwargs):
         """Defines the computation performed at every call when testing."""
-        img_metas = img_metas.data[0]
+        # img_metas = img_metas.data[0]
         # assert isinstance(img_metas, list), "img_metas should be a list"
-        # img_meta = img_metas[0]  # Assuming you want to access the first element
+        # img_metas = img_metas[0]  # Assuming you want to access the first element
         # assert isinstance(img_meta, dict), "Each element of img_metas should be a dictionary"
         # image_file = img_meta.get('image_file', '')  # Example of accessing image_file
         assert img.size(0) == len(img_metas)

@@ -30,7 +30,6 @@ except ImportError:
 time python tools/visual_rollout.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py\
      /Data/PoseEstimation/ViTPose/PreTrained/<trained_model.pth>
 """
-# inference > attention rollout > 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='mmpose test model')
@@ -128,7 +127,7 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     # build the dataloader
-    dataset = build_dataset(cfg.data.test, dict(test_mode=True))
+    dataset = build_dataset(cfg.data.test, dict(test_mode=True))  
     # step 1: give default values and override (if exist) from cfg.data
     loader_cfg = {
         **dict(seed=cfg.get('seed'), drop_last=False, dist=distributed),
@@ -186,7 +185,6 @@ def main():
         results = dataset.evaluate(outputs, cfg.work_dir, **eval_config)
         for k, v in sorted(results.items()):
             print(f'{k}: {v}')
-
 
 if __name__ == '__main__':
     main()

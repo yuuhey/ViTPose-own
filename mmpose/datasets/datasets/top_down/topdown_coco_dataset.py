@@ -226,7 +226,7 @@ class TopDownCocoDataset(Kpt2dSviewRgbImgTopDownDataset):
         print(f'=> Total boxes after filter '
               f'low score@{self.det_bbox_thr}: {bbox_id}')
         return kpt_db
-
+    
     @deprecated_api_warning(name_dict=dict(outputs='results'))
     def evaluate(self, results, res_folder=None, metric='mAP', **kwargs):
         """Evaluate coco keypoint results. The pose prediction results will be
@@ -322,6 +322,7 @@ class TopDownCocoDataset(Kpt2dSviewRgbImgTopDownDataset):
                 valid_kpts.append(img_kpts)
 
         self._write_coco_keypoint_results(valid_kpts, res_file)
+        self._calculate_AP_per_JointClass(valid_kpts)
 
         info_str = self._do_python_keypoint_eval(res_file)
         name_value = OrderedDict(info_str)
@@ -330,6 +331,34 @@ class TopDownCocoDataset(Kpt2dSviewRgbImgTopDownDataset):
             tmp_folder.cleanup()
 
         return name_value
+
+    def _calculate_AP_per_JointClass(self, keypoints):
+        # Initialize a dictionary to store AP for each joint class
+        ap_per_joint_class = defaultdict(list)
+        joint_class_names = [
+            'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
+            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
+            'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
+            'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
+        ]
+        
+        # Iterate through each image's keypoints
+        for img_kpts in keypoints:
+            for img_kpt in img_kpts:
+                # Extract keypoints and their scores
+                kpts = img_kpt['keypoints']
+                scores = np.array([kpt[2] for kpt in kpts])
+                
+                # Iterate through each joint class
+                for joint_class, joint_name in enumerate(joint_class_names):
+                    # Check if the joint is visible (score > 0)
+                    if scores[joint_class] > 0:
+                        # Append the score to the corresponding joint class
+                        ap_per_joint_class[joint_name].append(scores[joint_class])
+        # Calculate average AP for each joint class
+        for joint_name, ap_list in ap_per_joint_class.items():
+            avg_ap = np.mean(ap_list)
+            print(f'Average AP for joint class {joint_name}: {avg_ap:.4f}')
 
     def _write_coco_keypoint_results(self, keypoints, res_file):
         """Write results into a json file."""
