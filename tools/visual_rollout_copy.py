@@ -4,6 +4,7 @@ import argparse
 import os
 import os.path as osp
 import warnings
+import numpy as np
 import json
 
 import mmcv
@@ -18,6 +19,8 @@ from mmpose.datasets import build_dataloader, build_dataset
 from mmpose.models import build_posenet
 from mmpose.utils import setup_multi_processes
 
+from collections import defaultdict
+
 try:
     from mmcv.runner import wrap_fp16_model
 except ImportError:
@@ -31,6 +34,7 @@ except ImportError:
 time python tools/visual_rollout.py configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py\
      /Data/PoseEstimation/ViTPose/PreTrained/<trained_model.pth>
 """
+# inference > attention rollout > 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='mmpose test model')
@@ -128,7 +132,7 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     # build the dataloader
-    dataset = build_dataset(cfg.data.test, dict(test_mode=True))  
+    dataset = build_dataset(cfg.data.test, dict(test_mode=True))
     # step 1: give default values and override (if exist) from cfg.data
     loader_cfg = {
         **dict(seed=cfg.get('seed'), drop_last=False, dist=distributed),
@@ -151,44 +155,15 @@ def main():
         **dict(samples_per_gpu=cfg.data.get('samples_per_gpu', 1)),
         **cfg.data.get('test_dataloader', {})
     }
-    data_loader = build_dataloader(dataset, **test_loader_cfg)
-
-    # build the model and load checkpoint
-    model = build_posenet(cfg.model)
-    fp16_cfg = cfg.get('fp16', None)
-    if fp16_cfg is not None:
-        wrap_fp16_model(model)
-    load_checkpoint(model, args.checkpoint, map_location='cpu')
-
-    if args.fuse_conv_bn:
-        model = fuse_conv_bn(model)
-
-    if not distributed:
-        model = MMDataParallel(model, device_ids=[args.gpu_id])
-        outputs = single_gpu_test(model, data_loader)
-    else:
-        model = MMDistributedDataParallel(
-            model.cuda(),
-            device_ids=[torch.cuda.current_device()],
-            broadcast_buffers=False)
-        outputs = multi_gpu_test(model, data_loader, args.tmpdir,
-                                 args.gpu_collect)
-
+    
     rank, _ = get_dist_info()
     eval_config = cfg.get('evaluation', {})
     eval_config = merge_configs(eval_config, dict(metric=args.eval))
 
-    if rank == 0:
-        if args.out:
-            print(f'\nwriting results to {args.out}')
-            mmcv.dump(outputs, args.out)
+    json_file_path = '/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/work_dirs/ViTPose_base_coco_256x192/result_preds.json'
 
-        # 파일 경로 및 이름 설정
-        output_file = 'work_dirs/results_preds.json'
-
-        # outputs를 JSON 파일로 저장
-        with open(output_file, 'w') as f:
-            json.dump(outputs, f)
+    with open(json_file_path, 'r') as f:
+        outputs = json.load(f)
 
         results = dataset.evaluate(outputs, cfg.work_dir, **eval_config)
         for k, v in sorted(results.items()):

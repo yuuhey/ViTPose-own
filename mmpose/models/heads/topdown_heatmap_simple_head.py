@@ -166,10 +166,10 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             # "right_elbow": ['right_shoulder', 'right_wrist'],
             # "left_wrist": ['left_elbow'],
             # "right_wrist": ['right_elbow'],
-            "left_hip": ['left_shoulder', 'left_knee'],
-            "right_hip": ['right_shoulder', 'right_knee'],
-            "left_knee": ['left_hip', 'left_ankle'],
-            "right_knee": ['right_hip', 'right_ankle'],
+            "left_hip": ['right_hip','left_shoulder', 'left_knee'],
+            "right_hip": ['left_hip','right_shoulder', 'right_knee'],
+            "left_knee": ['right_knee','left_hip', 'left_ankle'],
+            "right_knee": ['left_knee','right_hip', 'right_ankle'],
             "left_ankle": ['left_knee'],
             "right_ankle": ['right_knee']
         }

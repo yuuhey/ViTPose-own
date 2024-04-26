@@ -1,8 +1,6 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
-
         {
             "name": "train",
             "type": "python",
@@ -21,25 +19,28 @@
             "internalConsoleOptions": "neverOpen"
         },
         {
-            "name": "Python: Debug Test Script",
+            // prediction 결과로 class AP 뽑기
+            "name": "Python: evaluate class AP with pred.json",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/tools/test.py",
+            "program": "${workspaceFolder}/tools/visual_rollout_copy.py",
             "args": [
                 "configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py",
-                "work_dirs/ViTPose_base_coco_256x192-3/best_AP_epoch_205.pth"
+                "work_dirs/ViTPose_base_coco_256x192-3/epoch81_test2.pth",
             ],
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
         },
         {
-            "name": "Python: class AP",
+            "name": "Python: Test with Inference",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/tools/visual_rollout.py",
             "args": [
                 "configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_base_coco_256x192.py",
                 // "work_dirs/ViTPose_base_coco_256x192-0/best_AP_epoch_207.pth",
-                "/Data/PoseEstimation/ViTPose/PreTrained/vitpose-b.pth"
+                "work_dirs/ViTPose_base_coco_256x192-3/epoch81_test2.pth",
+                "--out",
+                "work_dirs/results.json"
             ],
             "console": "integratedTerminal",
         }

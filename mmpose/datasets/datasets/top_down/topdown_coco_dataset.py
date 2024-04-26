@@ -341,14 +341,14 @@ class TopDownCocoDataset(Kpt2dSviewRgbImgTopDownDataset):
             'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
             'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
         ]
-        
+
         # Iterate through each image's keypoints
         for img_kpts in keypoints:
             for img_kpt in img_kpts:
                 # Extract keypoints and their scores
                 kpts = img_kpt['keypoints']
                 scores = np.array([kpt[2] for kpt in kpts])
-                
+
                 # Iterate through each joint class
                 for joint_class, joint_name in enumerate(joint_class_names):
                     # Check if the joint is visible (score > 0)
