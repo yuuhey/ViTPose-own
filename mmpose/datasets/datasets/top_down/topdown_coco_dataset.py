@@ -411,6 +411,7 @@ class TopDownCocoDataset(Kpt2dSviewRgbImgTopDownDataset):
         coco_eval.params.useSegm = None
         coco_eval.evaluate()
         coco_eval.accumulate()
+        coco_eval.save_image_aps('work_dirs/image_aps.json')
         coco_eval.summarize()
 
         stats_names = [

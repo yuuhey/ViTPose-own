@@ -94,7 +94,7 @@ class TopDown(BasePose):
                 target_weight=None,
                 img_metas=None,
                 return_loss=True,
-                return_heatmap=False,
+                return_heatmap=True,
                 **kwargs):
         """Calls either forward_train or forward_test depending on whether
         return_loss=True. Note this setting will change the expected inputs.
@@ -178,7 +178,7 @@ class TopDown(BasePose):
         if self.with_neck:
             features = self.neck(features)
         if self.with_keypoint:
-            output_heatmap = self.keypoint_head.inference_model(
+            output_heatmap, max_vals = self.keypoint_head.inference_model(
                 features, flip_pairs=None)
 
         if self.test_cfg.get('flip_test', True):

@@ -181,6 +181,39 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
 
         return related_joints_nums
 
+    def get_max_preds(self, heatmaps):
+        """Get predictions from heatmaps.
+
+        Args:
+            heatmaps (torch.Tensor[N, K, H, W]): Heatmaps with shape (N, K, H, W).
+
+        Returns:
+            torch.Tensor[N, K, 2]: Predicted keypoint locations in (x, y) format.
+            torch.Tensor[N, K, 1]: Confidence scores (max values) of the keypoints.
+        """
+        assert isinstance(heatmaps, torch.Tensor)
+
+        # Extract shape information
+        N, K, H, W = heatmaps.shape
+
+        # Reshape heatmaps to flatten the spatial dimensions (H, W)
+        heatmaps_reshaped = heatmaps.view(N, K, -1)
+
+        # Find the index of the maximum value in each heatmap
+        max_indices = heatmaps_reshaped.argmax(dim=2)
+
+        # Convert the 1D index to 2D indices (row, col)
+        max_row_indices = max_indices // W
+        max_col_indices = max_indices % W
+
+        # Create predicted keypoint locations (x, y)
+        preds = torch.stack((max_col_indices.float(), max_row_indices.float()), dim=2)
+
+        # Gather confidence scores (max values) from heatmaps
+        max_vals = heatmaps_reshaped.max(dim=2, keepdim=True)[0]
+
+        return max_vals
+
     def get_loss(self, output, target, target_weight):
         """Calculate top-down keypoint loss.
 
@@ -196,6 +229,8 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             target_weight (torch.Tensor[N,K,1]):
                 Weights across different joint types.
         """
+        max_vals = get_max_preds(output)
+
 
         losses = dict()
 

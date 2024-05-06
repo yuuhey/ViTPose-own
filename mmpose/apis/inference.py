@@ -117,7 +117,7 @@ def _inference_single_pose_model(model,
                                  bboxes,
                                  dataset='TopDownCocoDataset',
                                  dataset_info=None,
-                                 return_heatmap=False):
+                                 return_heatmap=True):
     """Inference human bounding boxes.
 
     Note:
@@ -299,7 +299,7 @@ def inference_top_down_pose_model(model,
                                   format='xywh',
                                   dataset='TopDownCocoDataset',
                                   dataset_info=None,
-                                  return_heatmap=False,
+                                  return_heatmap=True,
                                   outputs=None):
     """Inference a single image with a list of person bounding boxes.
 

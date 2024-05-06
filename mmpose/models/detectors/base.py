@@ -101,16 +101,17 @@ class BasePose(nn.Module, metaclass=ABCMeta):
                 DDP, it means the batch size on each GPU), which is used for
                 averaging the logs.
         """
-        losses = self.forward(**data_batch)
+        losses, output_heatmap = self.forward(**data_batch)
 
         loss, log_vars = self._parse_losses(losses)
+
 
         outputs = dict(
             loss=loss,
             log_vars=log_vars,
             num_samples=len(next(iter(data_batch.values()))))
 
-        return outputs
+        return outputs, output_heatmap
 
     def val_step(self, data_batch, optimizer, **kwargs):
         """The iteration step during validation.
