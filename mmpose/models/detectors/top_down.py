@@ -178,7 +178,7 @@ class TopDown(BasePose):
         if self.with_neck:
             features = self.neck(features)
         if self.with_keypoint:
-            output_heatmap, max_vals = self.keypoint_head.inference_model(
+            output_heatmap = self.keypoint_head.inference_model(
                 features, flip_pairs=None)
 
         if self.test_cfg.get('flip_test', True):

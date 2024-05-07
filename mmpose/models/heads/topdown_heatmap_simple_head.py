@@ -166,10 +166,10 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             # "right_elbow": ['right_shoulder', 'right_wrist'],
             # "left_wrist": ['left_elbow'],
             # "right_wrist": ['right_elbow'],
-            "left_hip": ['right_hip','left_shoulder', 'left_knee'],
-            "right_hip": ['left_hip','right_shoulder', 'right_knee'],
-            "left_knee": ['right_knee','left_hip', 'left_ankle'],
-            "right_knee": ['left_knee','right_hip', 'right_ankle'],
+            "left_hip": ['left_shoulder', 'left_knee'],
+            "right_hip": ['right_shoulder', 'right_knee'],
+            "left_knee": ['left_hip', 'left_ankle'],
+            "right_knee": ['right_hip', 'right_ankle'],
             "left_ankle": ['left_knee'],
             "right_ankle": ['right_knee']
         }
@@ -185,7 +185,7 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         """Get predictions from heatmaps.
 
         Args:
-            heatmaps (torch.Tensor[N, K, H, W]): Heatmaps with shape (N, K, H, W).
+            heatmaps (torch.Tensor[N, K, H, W]): fs with shape (N, K, H, W).
 
         Returns:
             torch.Tensor[N, K, 2]: Predicted keypoint locations in (x, y) format.
@@ -212,7 +212,23 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         # Gather confidence scores (max values) from heatmaps
         max_vals = heatmaps_reshaped.max(dim=2, keepdim=True)[0]
 
-        return max_vals
+        # Calculate the threshold for the bottom 10% of confidence scores
+        confidence_thresholds = []
+        for k in range(K):
+            # Get confidence scores for a specific keypoint across all samples
+            keypoint_scores = max_vals[:, k]
+
+            # Sort the confidence scores
+            sorted_scores, _ = torch.sort(keypoint_scores)
+
+            # Calculate the index for the 10th percentile (bottom 10%)
+            percentile_index = int(0.1 * len(sorted_scores))
+
+            # Get the confidence score at the percentile index
+            confidence_threshold = sorted_scores[percentile_index].item()
+            confidence_thresholds.append(confidence_threshold)
+
+        return max_vals, confidence_thresholds
 
     def get_loss(self, output, target, target_weight):
         """Calculate top-down keypoint loss.
@@ -229,8 +245,7 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             target_weight (torch.Tensor[N,K,1]):
                 Weights across different joint types.
         """
-        max_vals = get_max_preds(output)
-
+        max_vals, confidence_thresholds = self.get_max_preds(output)
 
         losses = dict()
 
@@ -296,17 +311,40 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         """
         output = self.forward(x)
 
+        max_vals, confidence_thresholds = self.get_max_preds(output)
+
+        # Convert tensors to numpy arrays
+        output_heatmap = output.detach().cpu().numpy()
+        max_vals = max_vals.detach().cpu().numpy()
+
+        # Initialize a copy of the output heatmap for manipulation
+        modified_heatmap = output_heatmap.copy()
+
+        # Iterate over each keypoint
+        for k in range(self.out_channels):
+            # Check if the max value of the current keypoint is below the threshold
+            if max_vals[:, k, 0] < confidence_thresholds[k]:
+                # Get related joints for the current keypoint
+                related_joints = self.get_related_joints(k)
+
+                # Mix related joint heatmaps into the current keypoint heatmap with delta
+                for related_ki in related_joints:
+                    # Apply delta scaling to the related joint heatmap
+                    modified_heatmap[:, k] += 0.01 * output_heatmap[:, related_ki]
+
+        # Combine modified heatmap with the original heatmap based on confidence threshold
+        output_heatmap[max_vals[:, :, 0] < confidence_thresholds[:, None]] = modified_heatmap[max_vals[:, :, 0] < confidence_thresholds[:, None]]
+        
         if flip_pairs is not None:
             output_heatmap = flip_back(
-                output.detach().cpu().numpy(),
+                output_heatmap,
                 flip_pairs,
                 target_type=self.target_type)
             # feature is not aligned, shift flipped heatmap for higher accuracy
             if self.test_cfg.get('shift_heatmap', False):
                 output_heatmap[:, :, :, 1:] = output_heatmap[:, :, :, :-1]
-        else:
-            output_heatmap = output.detach().cpu().numpy()
-        return output_heatmap
+
+        return output_heatmap, max_vals
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.
