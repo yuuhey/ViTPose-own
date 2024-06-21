@@ -4,11 +4,13 @@ _base_ = [
 ]
 evaluation = dict(interval=1, metric='mAP', save_best='AP')
 
+data_root = 'data/coco'
+
 optimizer = dict(type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1,
                  constructor='LayerDecayOptimizerConstructor', 
                  paramwise_cfg=dict(
                                     num_layers=12, 
-                                    layer_decay_rate=0.75,
+                                    layer_decay_rate=0.8,
                                     custom_keys={
                                             'bias': dict(decay_multi=0.),
                                             'pos_embed': dict(decay_mult=0.),
@@ -18,7 +20,9 @@ optimizer = dict(type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1,
                                     )
                 )
 
-optimizer_config = dict(grad_clip=dict(max_norm=1., norm_type=2))
+optimizer_config = dict(
+    grad_clip=dict(max_norm=1., norm_type=2)
+    )
 
 # learning policy
 lr_config = dict(
@@ -47,24 +51,32 @@ model = dict(
         type='ViT',
         img_size=(256, 192),
         patch_size=16,
-        embed_dim=768,
+        embed_dim=384,
         depth=12,
         num_heads=12,
         ratio=1,
         use_checkpoint=False,
         mlp_ratio=4,
         qkv_bias=True,
-        drop_path_rate=0.3,
+        drop_path_rate=0.1,
     ),
     keypoint_head=dict(
         type='TopdownHeatmapSimpleHead',
-        in_channels=768,
+        in_channels=384,
         num_deconv_layers=2,
         num_deconv_filters=(256, 256),
         num_deconv_kernels=(4, 4),
         extra=dict(final_conv_kernel=1, ),
         out_channels=channel_cfg['num_output_channels'],
         loss_keypoint=dict(type='JointsMSELoss', use_target_weight=True)),
+    reconstruction_head=dict(
+        type='ReconstructionHead',
+        in_channels=384 * 16 * 12,
+        hidden_dim=256,
+        out_channels=192 * 256 * 3,
+        num_layers=2,
+        loss_cfg=dict(type='L1Loss') 
+    ),
     train_cfg=dict(),
     test_cfg=dict(
         flip_test=True,
@@ -87,8 +99,8 @@ data_cfg = dict(
     vis_thr=0.2,
     use_gt_bbox=False,
     det_bbox_thr=0.0,
-    bbox_file='data/coco/person_detection_results/'
-    'COCO_val2017_detections_AP_H_56_person.json',
+    bbox_file=f'{data_root}/'
+    'person_detection_results/COCO_val2017_detections_AP_H_56_person.json',
 )
 
 train_pipeline = [
@@ -139,40 +151,37 @@ val_pipeline = [
 
 test_pipeline = val_pipeline
 
-data_root = '/Data/PoseEstimation/COCO/'
 data = dict(
-    samples_per_gpu=256,
+    samples_per_gpu=64,
     workers_per_gpu=4,
     val_dataloader=dict(samples_per_gpu=32),
     test_dataloader=dict(samples_per_gpu=32),
     train=dict(
-        type='TopDownCocoDataset',
+        # type='TopDownCocoDataset',
+        type='CustomSubsetDataset',
         ann_file='/Data/PoseEstimation/COCO/annotations/person_keypoints_train2017.json',
-        img_prefix=f'{data_root}/images/train2017/',
+        img_prefix='/Data/PoseEstimation/COCO/images/train2017/',
         data_cfg=data_cfg,
         pipeline=train_pipeline,
-        dataset_info={{_base_.dataset_info}}),
+        dataset_info={{_base_.dataset_info}},
+        subset = 0.3),
     val=dict(
-        type='TopDownCocoDataset',
+        # type='TopDownCocoDataset',
+        type='CustomSubsetDataset',
         ann_file=f'{data_root}/annotations/person_keypoints_val2017.json',
-        # ann_file='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/intersection.json',
-        # ann_file='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/low_ap_img_annotations.json',
-        img_prefix=f'{data_root}/images/val2017/',
-        # img_prefix='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/intersection',
-        # img_prefix='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/low_ap_image/',
+        img_prefix=f'{data_root}/val2017/',
         data_cfg=data_cfg,
         pipeline=val_pipeline,
-        dataset_info={{_base_.dataset_info}}),
+        dataset_info={{_base_.dataset_info}},
+        subset = 0.3),
     test=dict(
-        type='TopDownCocoDataset',
+        # type='TopDownCocoDataset',
+        type='CustomSubsetDataset',
         ann_file=f'{data_root}/annotations/person_keypoints_val2017.json',
-        # ann_file='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/low_ap_img_annotations.json',
-        # ann_file='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/intersection.json',
-        img_prefix=f'{data_root}/images/val2017/',
-        # img_prefix='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/intersection',
-        # img_prefix='/UHome/qtly_u/3D_Bio_Object_Detection/ViTPoseown/visual_rollout/low_ap_image/',
+        img_prefix=f'{data_root}/val2017/',
         data_cfg=data_cfg,
         pipeline=test_pipeline,
-        dataset_info={{_base_.dataset_info}}),
+        dataset_info={{_base_.dataset_info}},
+        subset = 0.3),
 )
 

@@ -3,6 +3,7 @@ import warnings
 
 import mmcv
 import numpy as np
+import torch
 from mmcv.image import imwrite
 from mmcv.utils.misc import deprecated_api_warning
 from mmcv.visualization.image import imshow
@@ -38,6 +39,7 @@ class TopDown(BasePose):
                  backbone,
                  neck=None,
                  keypoint_head=None,
+                 reconstruction_head=None,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None,
@@ -66,6 +68,9 @@ class TopDown(BasePose):
                 keypoint_head['loss_keypoint'] = loss_pose
 
             self.keypoint_head = builder.build_head(keypoint_head)
+        
+        if reconstruction_head is not None:
+            self.reconstruction_head = builder.build_head(reconstruction_head)
 
         self.init_weights(pretrained=pretrained)
 
@@ -78,6 +83,11 @@ class TopDown(BasePose):
     def with_keypoint(self):
         """Check if has keypoint_head."""
         return hasattr(self, 'keypoint_head')
+    
+    @property
+    def with_reconstruction(self):
+        """Check if has reconstruction_head."""
+        return hasattr(self, 'reconstruction_head')
 
     def init_weights(self, pretrained=None):
         """Weight initialization for model."""
@@ -86,6 +96,8 @@ class TopDown(BasePose):
             self.neck.init_weights()
         if self.with_keypoint:
             self.keypoint_head.init_weights()
+        if self.with_reconstruction:
+            self.reconstruction_head.init_weights()
 
     @auto_fp16(apply_to=('img', ))
     def forward(self,
@@ -94,7 +106,7 @@ class TopDown(BasePose):
                 target_weight=None,
                 img_metas=None,
                 return_loss=True,
-                return_heatmap=True,
+                return_heatmap=False,
                 **kwargs):
         """Calls either forward_train or forward_test depending on whether
         return_loss=True. Note this setting will change the expected inputs.
@@ -145,27 +157,41 @@ class TopDown(BasePose):
         output = self.backbone(img)
         if self.with_neck:
             output = self.neck(output)
-        if self.with_keypoint:
-            output = self.keypoint_head(output)
-
-        # if return loss
+        
         losses = dict()
+        lambda_reconstruction = 0.01
+        lambda_keypoint = 0.99
+
         if self.with_keypoint:
+            keypoint_output = self.keypoint_head(output)
             keypoint_losses = self.keypoint_head.get_loss(
-                output, target, target_weight)
+                keypoint_output, target, target_weight)
+            keypoint_losses = {k: v * lambda_keypoint for k, v in keypoint_losses.items()}  # Apply weighting
             losses.update(keypoint_losses)
             keypoint_accuracy = self.keypoint_head.get_accuracy(
-                output, target, target_weight)
+                keypoint_output, target, target_weight)
             losses.update(keypoint_accuracy)
+
+        if self.with_reconstruction:
+            reconstruction_output = self.reconstruction_head(output)
+            reconstruction_losses = self.reconstruction_head.get_loss(
+                reconstruction_output, img)
+            reconstruction_losses = {'reconstruction_loss': reconstruction_losses}
+            reconstruction_losses = {k: v * lambda_reconstruction for k, v in reconstruction_losses.items()}  # Apply weighting
+            losses.update(reconstruction_losses)
+
+        total_loss = sum(loss for loss in losses.values() if isinstance(loss, torch.Tensor))
+        losses['total_loss'] = total_loss
 
         return losses
 
+
     def forward_test(self, img, img_metas, return_heatmap=False, **kwargs):
         """Defines the computation performed at every call when testing."""
-        img_metas = img_metas.data[0]
-        assert isinstance(img_metas, list), "img_metas should be a list"
+        # img_metas = img_metas.data[0]
+        # assert isinstance(img_metas, list), "img_metas should be a list"
         # img_metas = img_metas[0]  # Assuming you want to access the first element
-        # assert isinstance(img_meta, dict), "Each element of img_metas should be a dictionary"
+        # assert isinstance(img_metas, dict), "Each element of img_metas should be a dictionary"
         # image_file = img_meta.get('image_file', '')  # Example of accessing image_file
         assert img.size(0) == len(img_metas)
         batch_size, _, img_height, img_width = img.shape
@@ -201,6 +227,10 @@ class TopDown(BasePose):
                 output_heatmap = None
 
             result['output_heatmap'] = output_heatmap
+
+        if self.with_reconstruction:
+            reconstruction_output = self.reconstruction_head(features)
+            result['reconstruction_output'] = reconstruction_output
 
         return result
 

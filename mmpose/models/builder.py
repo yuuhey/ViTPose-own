@@ -36,7 +36,14 @@ def build_loss(cfg):
 
 def build_posenet(cfg):
     """Build posenet."""
-    return POSENETS.build(cfg)
+    model = POSENETS.build(cfg)
+    
+    # reconstruction_head 추가
+    if 'reconstruction_head' in cfg:
+        reconstruction_cfg = cfg.reconstruction_head
+        model.reconstruction_head = build_head(reconstruction_cfg)
+    
+    return model
 
 
 def build_mesh_model(cfg):

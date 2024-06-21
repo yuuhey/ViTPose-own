@@ -185,8 +185,6 @@ def main():
             print(f'\nwriting results to {args.out}')
             mmcv.dump(outputs, args.out) 
 
-        json_path = "work_dirs/results_preds.json"
-        outputs2 = load(json_path)
         # # 파일 경로 및 이름 설정
         # output_file = 'work_dirs/results_preds.json'
 

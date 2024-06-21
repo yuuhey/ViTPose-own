@@ -168,18 +168,6 @@ def main():
     meta['seed'] = seed
 
     model = build_posenet(cfg.model)
-
-    # # Load the entire model weights
-    # checkpoint = torch.load('/Data/PoseEstimation/ViTPose/PreTrained/vitpose-b.pth')
-    # # Extract backbone weights
-    # backbone_state_dict = {k: v for k, v in checkpoint['state_dict'].items() if 'backbone' in k}
-    # # Load backbone weights
-    # model.backbone.load_state_dict(backbone_state_dict, strict=False)
-   
-    # # Freeze backbone layers
-    # for param in model.backbone.parameters():
-    #     param.requires_grad = False
-   
     datasets = [build_dataset(cfg.data.train)] 
 
     if len(cfg.workflow) == 2:
@@ -204,6 +192,9 @@ def main():
         timestamp=timestamp,
         meta=meta)
 
+
+import os
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
 
 if __name__ == '__main__':
     main()

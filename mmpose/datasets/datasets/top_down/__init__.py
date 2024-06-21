@@ -12,6 +12,7 @@ from .topdown_mpii_trb_dataset import TopDownMpiiTrbDataset
 from .topdown_ochuman_dataset import TopDownOCHumanDataset
 from .topdown_posetrack18_dataset import TopDownPoseTrack18Dataset
 from .topdown_posetrack18_video_dataset import TopDownPoseTrack18VideoDataset
+from .Subset_dataset import CustomSubsetDataset
 
 __all__ = [
     'TopDownAicDataset',
@@ -27,4 +28,5 @@ __all__ = [
     'TopDownH36MDataset',
     'TopDownHalpeDataset',
     'TopDownPoseTrack18VideoDataset',
+    'CustomSubsetDataset'
 ]

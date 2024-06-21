@@ -309,7 +309,7 @@ class ViT(BaseBackbone):
     @torch.jit.ignore
     def no_weight_decay(self):
         return {'pos_embed', 'cls_token'}
-
+    
     def forward_features(self, x):
         B, C, H, W = x.shape
         x, (Hp, Wp) = self.patch_embed(x)

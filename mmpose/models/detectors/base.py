@@ -59,8 +59,9 @@ class BasePose(nn.Module, metaclass=ABCMeta):
                 raise TypeError(
                     f'{loss_name} is not a tensor or list of tensors or float')
 
-        loss = sum(_value for _key, _value in log_vars.items()
-                   if 'loss' in _key)
+        # loss = sum(_value for _key, _value in log_vars.items()
+        #            if 'loss' in _key)
+        loss = losses['total_loss']
 
         log_vars['loss'] = loss
         for loss_name, loss_value in log_vars.items():
@@ -75,7 +76,7 @@ class BasePose(nn.Module, metaclass=ABCMeta):
 
         return loss, log_vars
 
-    def train_step(self, data_batch, optimizer, **kwargs):
+    def train_step(self, data_batch, optimizer, **kwargs):  
         """The iteration step during training.
 
         This method defines an iteration step during training, except for the
@@ -101,7 +102,7 @@ class BasePose(nn.Module, metaclass=ABCMeta):
                 DDP, it means the batch size on each GPU), which is used for
                 averaging the logs.
         """
-        losses, output_heatmap = self.forward(**data_batch)
+        losses = self.forward(**data_batch)
 
         loss, log_vars = self._parse_losses(losses)
 
@@ -111,7 +112,7 @@ class BasePose(nn.Module, metaclass=ABCMeta):
             log_vars=log_vars,
             num_samples=len(next(iter(data_batch.values()))))
 
-        return outputs, output_heatmap
+        return outputs
 
     def val_step(self, data_batch, optimizer, **kwargs):
         """The iteration step during validation.

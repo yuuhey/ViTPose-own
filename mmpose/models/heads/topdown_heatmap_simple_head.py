@@ -229,6 +229,29 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             confidence_thresholds.append(confidence_threshold)
 
         return max_vals, confidence_thresholds
+    
+    """
+    def get_loss(self, output, target, target_weight):
+        max_vals, confidence_thresholds = self.get_max_preds(output)
+
+        losses = dict()
+
+        delta = 0.01
+        if target is not None:
+            cloned_target = target.clone()  # 원본 데이터 복제
+            for bi in range(cloned_target.size(0)):
+                for ki in range(cloned_target.size(1)):
+                    related_joints = self.get_related_joints(ki)
+                    summan = 0.0
+                    for related_ki in related_joints:
+                        summan += delta * cloned_target[bi][related_ki]
+                        target[bi][ki] += summan        
+                assert not isinstance(self.loss, nn.Sequential)
+                assert cloned_target.dim() == 4 and target_weight.dim() == 3
+                losses['heatmap_loss'] = self.loss(output, target, target_weight)
+
+        return losses
+    """
 
     def get_loss(self, output, target, target_weight):
         """Calculate top-down keypoint loss.
@@ -245,22 +268,12 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
             target_weight (torch.Tensor[N,K,1]):
                 Weights across different joint types.
         """
-        max_vals, confidence_thresholds = self.get_max_preds(output)
 
         losses = dict()
 
-        delta = 0.01
-        cloned_target = target.clone()  # 원본 데이터 복제
-        for bi in range(cloned_target.size(0)):
-            for ki in range(cloned_target.size(1)):
-                related_joints = self.get_related_joints(ki)
-                summan = 0.0
-                for related_ki in related_joints:
-                    summan += delta * cloned_target[bi][related_ki]
-                    target[bi][ki] += summan        
-            assert not isinstance(self.loss, nn.Sequential)
-            assert cloned_target.dim() == 4 and target_weight.dim() == 3
-            losses['heatmap_loss'] = self.loss(output, target, target_weight)
+        assert not isinstance(self.loss, nn.Sequential)
+        assert target.dim() == 4 and target_weight.dim() == 3
+        losses['heatmap_loss'] = self.loss(output, target, target_weight)
 
         return losses
 
@@ -298,6 +311,46 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         x = self.final_layer(x)
         return x
 
+    """
+    def inference_model(self, x, flip_pairs=None):
+        output = self.forward(x)
+
+        max_vals, confidence_thresholds = self.get_max_preds(output)
+
+        # Convert tensors to numpy arrays
+        output_heatmap = output.detach().cpu().numpy()
+        max_vals = max_vals.detach().cpu().numpy()
+
+        # Initialize a copy of the output heatmap for manipulation
+        modified_heatmap = output_heatmap.copy()
+
+        # Iterate over each keypoint
+        for i in range(output_heatmap.shape[0]):
+            for k in range(17):
+                # Check if the max value of the current keypoint is below the threshold
+                if max_vals[i, k, 0] < confidence_thresholds[k]:
+                    # Get related joints for the current keypoint
+                    related_joints = self.get_related_joints(k)
+
+                    # Mix related joint heatmaps into the current keypoint heatmap with delta
+                    for related_ki in related_joints:
+                        # Apply delta scaling to the related joint heatmap
+                        modified_heatmap[i, k] += 0.01 * output_heatmap[i, related_ki]
+
+        output_heatmap = modified_heatmap
+
+        if flip_pairs is not None:
+            output_heatmap = flip_back(
+                output_heatmap,
+                flip_pairs,
+                target_type=self.target_type)
+            # feature is not aligned, shift flipped heatmap for higher accuracy
+            if self.test_cfg.get('shift_heatmap', False):
+                output_heatmap[:, :, :, 1:] = output_heatmap[:, :, :, :-1]
+
+        return output_heatmap
+    """
+
     def inference_model(self, x, flip_pairs=None):
         """Inference function.
 
@@ -311,40 +364,18 @@ class TopdownHeatmapSimpleHead(TopdownHeatmapBaseHead):
         """
         output = self.forward(x)
 
-        max_vals, confidence_thresholds = self.get_max_preds(output)
-
-        # Convert tensors to numpy arrays
-        output_heatmap = output.detach().cpu().numpy()
-        max_vals = max_vals.detach().cpu().numpy()
-
-        # Initialize a copy of the output heatmap for manipulation
-        modified_heatmap = output_heatmap.copy()
-
-        # Iterate over each keypoint
-        for k in range(self.out_channels):
-            # Check if the max value of the current keypoint is below the threshold
-            if max_vals[:, k, 0] < confidence_thresholds[k]:
-                # Get related joints for the current keypoint
-                related_joints = self.get_related_joints(k)
-
-                # Mix related joint heatmaps into the current keypoint heatmap with delta
-                for related_ki in related_joints:
-                    # Apply delta scaling to the related joint heatmap
-                    modified_heatmap[:, k] += 0.01 * output_heatmap[:, related_ki]
-
-        # Combine modified heatmap with the original heatmap based on confidence threshold
-        output_heatmap[max_vals[:, :, 0] < confidence_thresholds[:, None]] = modified_heatmap[max_vals[:, :, 0] < confidence_thresholds[:, None]]
-        
         if flip_pairs is not None:
             output_heatmap = flip_back(
-                output_heatmap,
+                output.detach().cpu().numpy(),
                 flip_pairs,
                 target_type=self.target_type)
             # feature is not aligned, shift flipped heatmap for higher accuracy
             if self.test_cfg.get('shift_heatmap', False):
                 output_heatmap[:, :, :, 1:] = output_heatmap[:, :, :, :-1]
-
-        return output_heatmap, max_vals
+        else:
+            output_heatmap = output.detach().cpu().numpy()
+        return output_heatmap
+    
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.
